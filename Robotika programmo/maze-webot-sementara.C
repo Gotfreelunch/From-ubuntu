@@ -1,16 +1,18 @@
 //Made With ChatGPT and a little bit from me
-include <webots/robot.h>
+#include <webots/robot.h>
 #include <webots/distance_sensor.h>
 #include <webots/motor.h>
 #include <stdio.h>
 
-#define TIME_STEP 8
-#define NUM_SENSORS 9 
-#define MAX_SPEED 17
+#define TIME_STEP 16
+#define NUM_SENSORS 9  // Jumlah sensor IR
+#define MAX_SPEED 17 // Kecepatan maksimum motor
 #define MAX_DIR 100
 
 const char *sensor_names[NUM_SENSORS] = {"ir0", "ir1", "ir2", "ir3", "ir4", "ir5", "ir6", "ir7", "ir8"};
 WbDeviceTag sensors[NUM_SENSORS];
+
+
 
 double constrain(double nilai, double min, double max) {
     if (nilai < min) {
@@ -55,35 +57,44 @@ int main() {
     double weighted_sum = 0.0;
     char direction[MAX_DIR];  // Array untuk menyimpan arah
     int dir_index = 0;        // Indeks arah terakhir
+    //-----------------------------------------------------------------
+    bool Mode_Telusur = false; //Ganti ke false untuk mode telusur kiri
+    //-----------------------------------------------------------------
+    //Variabel untuk Mode Telusur Kanan dan Kiri
+    char perempatan_dir = 'O';
+    char simpang_T = 'O';
+    char stKA = 'O';
+    char stKI = 'O';
+    char DstKA = 'O';
+    char DstKI = 'O';
     
 void belok_kanan(){
    wb_motor_set_velocity(left_motor,  0.8 * MAX_SPEED);
    wb_motor_set_velocity(right_motor, 0.1 * -MAX_SPEED);
    }
 void muter(){
-   wb_motor_set_velocity(left_motor, 0.35 * -MAX_SPEED);
-   wb_motor_set_velocity(right_motor,0.35 * MAX_SPEED);
-   }
+ wb_motor_set_velocity(left_motor, 0.35 * -MAX_SPEED);
+ wb_motor_set_velocity(right_motor,0.35 * MAX_SPEED);
+ }
 void belok_kiri(){
-  wb_motor_set_velocity(left_motor, 0.1 * -MAX_SPEED);
+ wb_motor_set_velocity(left_motor, 0.1 * -MAX_SPEED);
   wb_motor_set_velocity(right_motor,0.75 * MAX_SPEED);
-   }
+ }
 void stop(){
-  wb_motor_set_velocity(left_motor, 0 * MAX_SPEED);
+wb_motor_set_velocity(left_motor, 0 * MAX_SPEED);
   wb_motor_set_velocity(right_motor,0 * -MAX_SPEED);
-  }
+}
+
 void jalan_lurus(){     
-    //PID untuk Trek Lurusan
     double position = 0.0;
     double sum = 0.0;
 
     for (int i = 0; i < 7; i++) {
       double value = wb_distance_sensor_get_value(sensors[i]);
-      double weight = i - 3;  
+      double weight = i - 3;  // posisi relatif dari -4 sampai +4
       position += weight * value;
       sum += value;
     }
-
     if (sum != 0)
       position /= sum;   
     error = position;
@@ -100,7 +111,25 @@ void jalan_lurus(){
     wb_motor_set_velocity(right_motor, right_speed);
 }   
 
-    //Looping Inti
+   if(Mode_Telusur == true){
+    perempatan_dir = 'R';
+    simpang_T = 'R';
+    stKA = 'R';
+    stKI = 'F';
+    DstKA = 'R';
+    DstKI = 'S';
+    printf("Mode Telusur Kanan dimulai!! \n");
+   }
+   else{
+    perempatan_dir = 'L';
+    simpang_T = 'L';
+    stKA = 'F';
+    stKI = 'L';
+    DstKI = 'L';
+    DstKA = 'S';
+    printf("Mode Telusur Kiri dimulai!! \n");
+   }
+
     while (wb_robot_step(TIME_STEP) != -1) {
         double sensor_values[NUM_SENSORS];     
         for (int i = 0; i < NUM_SENSORS; i++) {
@@ -110,17 +139,17 @@ void jalan_lurus(){
          // printf("KABA-Sensor 7: %.2f, Sensor 8: %.2f -KIBA \n", sensor_values[7], sensor_values[8]);
          printf("direction: %c \t, forward: %.2f \t, change: %d \t", dir, weighted_sum, change);
          // printf("direction: %c , forward: %.2f \n", dir, forward);
-               
+        
         //Telusur Kiri dan Kanan Pasti Ada
          if (sensor_values[4] > 500 && sensor_values[8] > 500 && sensor_values[7] > 500 && sensor_values[0] < 300 && sensor_values[6] < 300 && change == true){                   
-           dir = 'R';
-           get_dir = 'R';
+           dir = perempatan_dir;
+           get_dir = dir;
            printf("Perempatan \n");
            change = false;
            }   
-         else if (sensor_values[8] < 300 && sensor_values[7] < 300 && sensor_values[3] < 300 && weighted_sum < 1000 && change == true){       
+         else if (sensor_values[8] < 300 && sensor_values[7] < 300 && sensor_values[3] < 300 && weighted_sum < 998 && change == true){       
            dir = 'U'; 
-           get_dir = 'U';      
+           get_dir = dir;      
            printf("U-Turn\n");
            change  = false;
            }   
@@ -134,37 +163,42 @@ void jalan_lurus(){
             printf("\n");        
            }   
            
-         //Telusur Kanan  
+         //Telusur Kanan dak Kiri tergantung Opsi  
          else if (sensor_values[3] < 200  &&  sensor_values[7] > 500 && sensor_values[8] > 500 && change == true ){       
-           dir = 'R';
-           get_dir = 'R';
-           printf("T Kanan \n");
+           dir = simpang_T;
+           get_dir = dir;
+           printf("Simpang T \n");
            change = false;
            }
+           
+         //Kondisi Telusur saling membutuhkan
          else if (sensor_values[7] > 500 && sensor_values[8] < 200 && sensor_values[3] > 500 && change == true){       
-           dir = 'R';
-           get_dir = 'R';
-           printf("Pertigaan Kanan \n");
-           change = false;
+           dir = stKA;
+           get_dir = DstKA;
+           printf("Simpang Tiga-Kanan \n");
+           if(Mode_Telusur == true){change = false;}
            }
-         
-         
+           
+         else if (sensor_values[8] > 500 && sensor_values[7] < 200 && sensor_values[3] > 500 && change == true){            
+           dir = stKI;
+           get_dir = DstKI;
+           printf("Simpang Tiga-Kiri  \n");
+           if(Mode_Telusur == false){change = false;}
+           }
+           
           else if (sensor_values[3] < 300 &&  sensor_values[7] < 300 && sensor_values[8] > 500 && change == true){       
-           dir = 'L';
+           dir = 'l';
            printf("Belok kiri ikut jalan  \n");
            change = false;
            }
-          else if (sensor_values[8] > 500 && sensor_values[7] < 200 && sensor_values[3] > 500 && change == true){       
-           printf("Lurus  \n");
-           get_dir = 'S';
-           }
-           
+          
           //Ambil dan Rekam perjalanan
           if(get_dir != prev_get_dir){
             if (get_dir != 'F') {
                    direction[dir_index++] = get_dir;
-               }prev_get_dir = get_dir;} 
-           
+               }
+            prev_get_dir = get_dir;
+            }
           //Berhenti sebentar ketika berganti arah gerak Robot
           if (dir != prev_dir){
             printf("Stop 100ms \n"); 
@@ -190,7 +224,6 @@ void jalan_lurus(){
             printf("Jalan Maju \n");   
             }
 
-        
          switch (dir) {
                     case 'F':
                       jalan_lurus();
@@ -202,7 +235,7 @@ void jalan_lurus(){
                       belok_kiri();       
                       break;
                     case 'l':
-                       printf("cek");             
+                      belok_kiri();             
                       break;
                     case 'U':
                        muter();              
@@ -211,7 +244,7 @@ void jalan_lurus(){
                        stop();              
                       break;
                   }
-                             
+                   
 }
     wb_robot_cleanup();
     return 0;
