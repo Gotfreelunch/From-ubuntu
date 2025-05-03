@@ -24,9 +24,12 @@ double constrain(double nilai, double min, double max) {
 }
 
 void shortpath(char input[], int inputLength, char choose) {
+  char counter_choose = 'O';
   char firstPass[50];
   int idxFirst = 0;
   int i = 0;
+  if(choose == 'R'){counter_choose = 'L';}
+  else{counter_choose = 'R';}
   
   while (i < inputLength) {
     if (i + 2 < inputLength && input[i] == choose && input[i+1] == 'U' && input[i+2] == choose) {
@@ -46,7 +49,7 @@ void shortpath(char input[], int inputLength, char choose) {
     if (j + 2 < idxFirst &&
         ((firstPass[j] == 'S' && firstPass[j+1] == 'U' && firstPass[j+2] == choose) ||
          (firstPass[j] == choose && firstPass[j+1] == 'U' && firstPass[j+2] == 'S'))) {
-      secondPass[idxSecond++] = 'L';
+      secondPass[idxSecond++] = counter_choose;
       j += 3;
     } else {
       secondPass[idxSecond++] = firstPass[j];
@@ -190,7 +193,7 @@ void jalan_lurus(){
            printf("Perempatan \n");
            change = false;
            }   
-         else if (sensor_values[8] < 300 && sensor_values[7] < 300 && sensor_values[3] < 300 && weighted_sum < 998 && change == true){       
+         else if (sensor_values[8] < 300 && sensor_values[7] < 300 && sensor_values[3] < 300 && weighted_sum < 999 && change == true){       
            dir = 'U'; 
            get_dir = dir;      
            printf("U-Turn\n");
@@ -241,6 +244,11 @@ void jalan_lurus(){
            printf("Belok kiri ikut jalan  \n");
            change = false;
            }
+          else if (sensor_values[3] < 300 &&  sensor_values[8] < 300 && sensor_values[7] > 500 && change == true){       
+           dir = 'r';
+           printf("Belok kanan ikut jalan  \n");
+           change = false;
+           }
           
           //Ambil dan Rekam perjalanan
           if(get_dir != prev_get_dir){
@@ -279,6 +287,9 @@ void jalan_lurus(){
                       jalan_lurus();
                       break;
                     case 'R':
+                      belok_kanan();       
+                      break;
+                     case 'r':
                       belok_kanan();       
                       break;
                     case 'L':
