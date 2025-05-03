@@ -23,14 +23,13 @@ double constrain(double nilai, double min, double max) {
     }
 }
 
-void shortpath(char input[], int inputLength) {
+void shortpath(char input[], int inputLength, char choose) {
   char firstPass[50];
   int idxFirst = 0;
   int i = 0;
-
-  // Tahap 1: Replace "RUR" dengan 'S'
+  
   while (i < inputLength) {
-    if (i + 2 < inputLength && input[i] == 'L' && input[i+1] == 'U' && input[i+2] == 'L') {
+    if (i + 2 < inputLength && input[i] == choose && input[i+1] == 'U' && input[i+2] == choose) {
       firstPass[idxFirst++] = 'S';
       i += 3;
     } else {
@@ -39,15 +38,14 @@ void shortpath(char input[], int inputLength) {
     }
   }
 
-  // Tahap 2: Replace "SUR" dan "RUS" dengan 'L'
   char secondPass[50];
   int idxSecond = 0;
   int j = 0;
 
   while (j < idxFirst) {
     if (j + 2 < idxFirst &&
-        ((firstPass[j] == 'S' && firstPass[j+1] == 'U' && firstPass[j+2] == 'L') ||
-         (firstPass[j] == 'L' && firstPass[j+1] == 'U' && firstPass[j+2] == 'S'))) {
+        ((firstPass[j] == 'S' && firstPass[j+1] == 'U' && firstPass[j+2] == choose) ||
+         (firstPass[j] == choose && firstPass[j+1] == 'U' && firstPass[j+2] == 'S'))) {
       secondPass[idxSecond++] = 'L';
       j += 3;
     } else {
@@ -58,7 +56,7 @@ void shortpath(char input[], int inputLength) {
 
   printf("Short Path : ");
   for (int k = 0; k < idxSecond; k++) {
-    printf("%c", secondPass[k]);
+    printf("%c ", secondPass[k]);
   }
   printf("\n");
 }
@@ -100,7 +98,7 @@ int main() {
     char short_dir[50];
     int idxSecond = 0;
     //-----------------------------------------------------------------
-    bool Mode_Telusur = false; //Ganti ke false untuk mode telusur kiri
+    bool Mode_Telusur = true; //Ganti ke false untuk mode telusur kiri
     //-----------------------------------------------------------------
     //Variabel untuk Mode Telusur Kanan dan Kiri
     char perempatan_dir = 'O';
@@ -109,6 +107,7 @@ int main() {
     char stKI = 'O';
     char DstKA = 'O';
     char DstKI = 'O';
+    char finder_choose = 'O';
   
 void belok_kanan(){
    wb_motor_set_velocity(left_motor,  0.8 * MAX_SPEED);
@@ -160,6 +159,7 @@ void jalan_lurus(){
     stKI = 'F';
     DstKA = 'R';
     DstKI = 'S';
+    finder_choose = 'R';
     printf("Mode Telusur Kanan dimulai!! \n");
    }
    else{
@@ -169,6 +169,7 @@ void jalan_lurus(){
     stKI = 'L';
     DstKI = 'L';
     DstKA = 'S';
+    finder_choose = 'L';
     printf("Mode Telusur Kiri dimulai!! \n");
    }
 
@@ -205,13 +206,10 @@ void jalan_lurus(){
             }
             printf(" \n");
            int delays =100 ;
-           int step = delays / TIME_STEP;
-              for (int i = 0; i < step; i++) {
-                  wb_robot_step(TIME_STEP); 
-                  printf("processing \n");
-              }  
            int length = sizeof(direction) / sizeof(direction[0]);
-           shortpath(direction, length);
+ 
+           shortpath(direction, dir_index, finder_choose);
+           change = false;
            }  
            
            
