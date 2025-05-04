@@ -3,7 +3,6 @@
 #include <webots/motor.h>
 #include <webots/keyboard.h>
 #include <stdio.h>
-#include <string.h>
 
 #define TIME_STEP 16
 #define NUM_SENSORS 9  // Jumlah sensor IR
@@ -39,7 +38,7 @@ double weighted_sum = 0.0;
 bool Switch = false; 
 
 //-----------------------------------------------------------------
-bool Mode_Telusur = true; //Ganti ke false untuk mode telusur kiri atau true untuk telusur kanan
+bool Mode_Telusur = false; //Ganti ke false untuk mode telusur kiri atau true untuk telusur kanan
 //-----------------------------------------------------------------
 
 bool Mode_Robot = true; //Mode Track Finder dan Short Path(Jangan Diganti!!!)
@@ -179,10 +178,9 @@ void searchtracklogic(){
 }
 
 void shortpathlogic(){
- printf("Short path lofic \n");
     if (dir != prev_dir){
                 int delay = 10;
-                if (dir=='S'){
+                if (dir=='S'||prev_dir=='S'){
                   delay = 5;
                   printf("Stop 5ms \n");}
                 else{
@@ -200,13 +198,11 @@ void shortpathlogic(){
       }
      else{
         if(sensor_values[3] < 200){
-          c_for = true;
-          printf("Switch to True \n");            
+          c_for = true;          
           }   
         else if(sensor_values[3] > 500 && c_for == true){
           dir = 'F';
-          change = true;
-          printf("Jalan Maju \n");   
+          change = true;  
           }}
 }
 
@@ -243,6 +239,7 @@ void Main_Logic(bool Mode){
         else{
          dir = 'B';
          Switch = true;}
+        printf("Robot berhenti \n");
         change = false;
        }  
         
@@ -357,7 +354,6 @@ while (wb_robot_step(TIME_STEP) != -1) { //Void Loop
       Main_Logic(Mode_Robot);}
     else{
       stop();
-      printf("Robot berhenti \n");
       key_input();}
     
      switch (dir) {
