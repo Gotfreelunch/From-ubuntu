@@ -1,7 +1,9 @@
 #include <webots/robot.h>
 #include <webots/distance_sensor.h>
 #include <webots/motor.h>
+#include <webots/keyboard.h>
 #include <stdio.h>
+#include <string.h>
 
 #define TIME_STEP 16
 #define NUM_SENSORS 9  // Jumlah sensor IR
@@ -29,14 +31,12 @@ char get_dir = 'A';
 char prev_get_dir = 'A';
 bool change = true;
 bool c_for = true;
-double weighted_sum = 0.0;
-char direction[MAX_DIR];  // Array untuk menyimpan arah
-int dir_index = 0;        // Indeks arah terakhir
+double weighted_sum = 0.0;   
 char short_dir[50];
-int idxSecond = 0;
 //-----------------------------------------------------------------
-bool Mode_Telusur = true; //Ganti ke false untuk mode telusur kiri
+bool Mode_Telusur = false; //Ganti ke false untuk mode telusur kiri
 bool Mode_Robot = true; //Ganti ke false untuk mode short path
+bool Switch = false;
 //-----------------------------------------------------------------
 //Variabel untuk Mode Telusur Kanan dan Kiri
 char perempatan_dir = 'O';
@@ -46,6 +46,15 @@ char stKI = 'O';
 char DstKA = 'O';
 char DstKI = 'O';
 char finder_choose = 'O';
+
+
+
+//variabel untuk Search Track Mode
+char direction[MAX_DIR];  // Array untuk menyimpan arah
+int dir_index = 0; // Indeks arah terakhir
+
+char destination[MAX_DIR];
+int destinate_index = 0;
 
 
 double constrain(double nilai, double min, double max) {
@@ -76,10 +85,9 @@ void shortpath(char input[], int inputLength, char choose) {
     }
   }
 
+  int j = 0;
   char secondPass[50];
   int idxSecond = 0;
-  int j = 0;
-
   while (j < idxFirst) {
     if (j + 2 < idxFirst &&
         ((firstPass[j] == 'S' && firstPass[j+1] == 'U' && firstPass[j+2] == choose) ||
@@ -95,6 +103,7 @@ void shortpath(char input[], int inputLength, char choose) {
   printf("Short Path : ");
   for (int k = 0; k < idxSecond; k++) {
     printf("%c ", secondPass[k]);
+    destination[k] = secondPass[k];
   }
   printf("\n");
 }
@@ -154,8 +163,8 @@ void searchtracklogic(){
           int delay = 100;
           c_for = false;
           stop();
-          int steps = delay / TIME_STEP;
-          for (int i = 0; i < steps; i++) {
+          int step = delay / TIME_STEP;
+          for (int i = 0; i < step; i++) {
               wb_robot_step(TIME_STEP); 
           } prev_dir = dir;}  
    else if(sensor_values[3] < 200){
@@ -167,20 +176,22 @@ void searchtracklogic(){
 }
 
 void shortpathlogic(){
+ printf("Short path lofic \n");
     if (dir != prev_dir){
                 int delay = 10;
-                printf("Stop 100ms \n"); 
-                if (dir=='S'){delay = 5;}
-                else{delay=100;}
+                if (dir=='S'){
+                  delay = 5;
+                  printf("Stop 5ms \n");}
+                else{
+                  delay=100;
+                  printf("Stop 100ms \n");}
                 c_for = false;
                 stop();
                 int steps = delay / TIME_STEP;
                 for (int i = 0; i < steps; i++) {
                     wb_robot_step(TIME_STEP); 
-                    }      
-                prev_dir = dir;
-                }
-     if(sensor_values[8] < 300 && sensor_values[7] < 300 && dir == 'S'){
+                    }prev_dir = dir;}
+    if(sensor_values[8] < 300 && sensor_values[7] < 300 && dir == 'S'){
       dir = 'F';
       change = true;
       }
@@ -191,7 +202,6 @@ void shortpathlogic(){
           }   
         else if(sensor_values[3] > 500 && c_for == true){
           dir = 'F';
-          get_dir = 'F';
           change = true;
           printf("Jalan Maju \n");   
           }}
@@ -203,21 +213,19 @@ void Main_Logic(bool Mode){
        printf("Perempatan \n");
        if(Mode == true){
          dir = perempatan_dir;
-         get_dir = dir;
-         change = false;}
+         get_dir = dir;}
         else{ 
-         dir = direction[dir_index++];
-         change = false;}
+         dir = destination[destinate_index++];}
+         change = false;
        }   
      else if (sensor_values[8] < 300 && sensor_values[7] < 300 && sensor_values[3] < 300 && weighted_sum < 999 && change == true){       
        printf("U-Turn\n");
        if(Mode == true){
          dir = 'U'; 
-         get_dir = dir;      
-         change  = false;}
+         get_dir = dir;}
        else{
-         dir = direction[dir_index++];     
-         change  = false;}
+         dir = destination[destinate_index++];}
+         change  = false;
        }   
      else if (sensor_values[0] > 500 && sensor_values[1] > 500 && sensor_values[2] > 500 && sensor_values[3] > 500 && sensor_values[4] > 500 && sensor_values[5] > 500 && sensor_values[0] > 500 && sensor_values[7] > 500 && sensor_values[8] > 500 && change == true){       
        printf("Target Found!!!! \n");
@@ -226,23 +234,23 @@ void Main_Logic(bool Mode){
          printf("Tracked Direction: ");
          for (int i = 0; i < dir_index; i++) {
               printf("%c ", direction[i]);
-          }
-         printf(" \n");
+          }printf(" \n");
          shortpath(direction, dir_index, finder_choose);
-         change = false;}
+         Switch = true;}
         else{
-         dir = 'B';}
+         dir = 'B';
+         Switch = true;}
+        change = false;
        }  
         
      else if (sensor_values[3] < 200  &&  sensor_values[7] > 500 && sensor_values[8] > 500 && change == true ){       
        printf("Simpang T \n");
        if(Mode == true){
          dir = simpang_T;
-         get_dir = dir;
-         change = false;}
+         get_dir = dir;}
        else{
-         dir = direction[dir_index++];  
-         change = false;}
+         dir = destination[destinate_index++];}
+         change = false;
        }
        
      //Kondisi Telusur saling membutuhkan
@@ -253,7 +261,7 @@ void Main_Logic(bool Mode){
          get_dir = DstKA;
          if(Mode_Telusur == true){change = false;}}
        else{
-         dir = direction[dir_index++]; 
+         dir = destination[destinate_index++];
          change = false;}
        }
        
@@ -264,7 +272,7 @@ void Main_Logic(bool Mode){
          get_dir = DstKI; 
          if(Mode_Telusur == false){change = false;}}
        else{
-         dir = direction[dir_index++];  
+         dir = destination[destinate_index++];
          change = false;}
        }
        
@@ -285,7 +293,22 @@ void Main_Logic(bool Mode){
       }else{shortpathlogic();}   
 }
 
-
+void key_input(){
+      int key = wb_keyboard_get_key();
+          while (key > 0) {
+            switch (key) { 
+              case 'Q':
+                printf(" Short Path Mode Started \n");  
+                dir = 'F';
+                prev_dir = 'F';
+                Mode_Robot = false; // Ubah ke Mode Short Path
+                change = true;
+                c_for = true;
+                Switch = false;
+                break;
+            }
+            key = wb_keyboard_get_key();
+          }}
 
 int main() {//Void Setup
     wb_robot_init();
@@ -299,6 +322,7 @@ int main() {//Void Setup
     wb_motor_set_position(right_motor, INFINITY);
     wb_motor_set_velocity(left_motor, 0.0);
     wb_motor_set_velocity(right_motor, 0.0);
+    wb_keyboard_enable(TIME_STEP);
     
    if(Mode_Telusur == true){
     perempatan_dir = 'R';
@@ -322,36 +346,44 @@ int main() {//Void Setup
    }
 
 
-while (wb_robot_step(TIME_STEP) != -1) { //Main Loop
+while (wb_robot_step(TIME_STEP) != -1) { //Void Loop
              
-        for (int i = 0; i < NUM_SENSORS; i++) { //Get sensor
-            sensor_values[i] = wb_distance_sensor_get_value(sensors[i]);
-        }      
-        Main_Logic(Mode_Robot);
-        
-         switch (dir) {
-                    case 'F':
-                      jalan_lurus();
-                      break;
-                    case 'R':
-                      belok_kanan();       
-                      break;
-                     case 'r':
-                      belok_kanan();       
-                      break;
-                    case 'L':
-                      belok_kiri();       
-                      break;
-                    case 'l':
-                      belok_kiri();             
-                      break;
-                    case 'U':
-                       muter();              
-                      break;
-                    case 'B':
-                       stop();              
-                      break;
-                  }
+    for (int i = 0; i < NUM_SENSORS; i++) { //Get sensor
+        sensor_values[i] = wb_distance_sensor_get_value(sensors[i]);}      
+    if(Switch == false){
+      Main_Logic(Mode_Robot);}
+    else{
+      stop();
+      int size = sizeof(destination);
+      printf("Robot berhenti \n");
+      key_input();}
+    
+     switch (dir) {
+                case 'F':
+                  jalan_lurus();
+                  break;
+                case 'R':
+                  belok_kanan();       
+                  break;
+                 case 'r':
+                  belok_kanan();       
+                  break;
+                case 'L':
+                  belok_kiri();       
+                  break;
+                case 'l':
+                  belok_kiri();             
+                  break;
+                case 'U':
+                   muter();              
+                  break;
+                case 'B':
+                   stop();              
+                  break;
+                case 'S':
+                   jalan_lurus();              
+                  break;
+              }
                    
 }
     wb_robot_cleanup();
