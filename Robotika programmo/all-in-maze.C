@@ -15,6 +15,7 @@ WbDeviceTag sensors[NUM_SENSORS];
 WbDeviceTag left_motor;
 WbDeviceTag right_motor;
 
+//Variabel kendali PID
 double Kp = 3;
 double Ki = 0.0;
 double Kd = 2.8;
@@ -24,7 +25,10 @@ double last_error = 0;
 double integral = 0;
 double forward = 12.0;
 
+//Variabel untuk Pengambilan Nilai Sensor
 double sensor_values[NUM_SENSORS];
+
+//Variabel Untuk Algoritma Maze
 char dir = 'F';
 char prev_dir = 'F' ;
 char get_dir = 'A';
@@ -32,12 +36,13 @@ char prev_get_dir = 'A';
 bool change = true;
 bool c_for = true;
 double weighted_sum = 0.0;   
-char short_dir[50];
+bool Switch = false; 
+
 //-----------------------------------------------------------------
-bool Mode_Telusur = false; //Ganti ke false untuk mode telusur kiri
-bool Mode_Robot = true; //Ganti ke false untuk mode short path
-bool Switch = false;
+bool Mode_Telusur = true; //Ganti ke false untuk mode telusur kiri atau true untuk telusur kanan
 //-----------------------------------------------------------------
+
+bool Mode_Robot = true; //Mode Track Finder dan Short Path(Jangan Diganti!!!)
 //Variabel untuk Mode Telusur Kanan dan Kiri
 char perempatan_dir = 'O';
 char simpang_T = 'O';
@@ -48,14 +53,13 @@ char DstKI = 'O';
 char finder_choose = 'O';
 
 
-
 //variabel untuk Search Track Mode
 char direction[MAX_DIR];  // Array untuk menyimpan arah
 int dir_index = 0; // Indeks arah terakhir
 
-char destination[MAX_DIR];
-int destinate_index = 0;
-
+//Variabel untuk Short Path Mode
+char destination[MAX_DIR]; // Array untuk Membaca Arah
+int destinate_index = 0; // Indeks arah terakhir 
 
 double constrain(double nilai, double min, double max) {
     if (nilai < min) {
@@ -67,7 +71,7 @@ double constrain(double nilai, double min, double max) {
     }
 }
 
-void shortpath(char input[], int inputLength, char choose) {
+void shortpath(char input[], int inputLength, char choose) {// Fungsi Pengolahan Track ke Short Path
   char counter_choose = 'O';
   char firstPass[50];
   int idxFirst = 0;
@@ -128,10 +132,9 @@ void stop(){
 void jalan_lurus(){     
     double position = 0.0;
     double sum = 0.0;
-
     for (int i = 0; i < 7; i++) {
       double value = sensor_values[i];
-      double weight = i - 3;  // posisi relatif dari -4 sampai +4
+      double weight = i - 3;  
       position += weight * value;
       sum += value;
     }
@@ -354,7 +357,6 @@ while (wb_robot_step(TIME_STEP) != -1) { //Void Loop
       Main_Logic(Mode_Robot);}
     else{
       stop();
-      int size = sizeof(destination);
       printf("Robot berhenti \n");
       key_input();}
     
